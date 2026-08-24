@@ -7,7 +7,7 @@ feed = feedparser.parse(RSS_URL)
 print(f"Noticias encontradas: {len(feed.entries)}")
 print()
 
-for noticia in feed.entries[:10]:
+for noticia in feed.entries[:50]:
     print("TÍTULO:", noticia.title)
     print("FECHA:", noticia.get("published", "Sin fecha"))
     print("URL:", noticia.link)
