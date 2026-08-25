@@ -7,6 +7,7 @@ FUENTES = {
     "El Mundo": "https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml",
     "elDiario.es": "https://www.eldiario.es/rss",
     "La Vanguardia": "https://www.lavanguardia.com/rss/politica.xml",
+    "ABC": "https://www.abc.es/rss/2.0/portada",
 }
 
 
