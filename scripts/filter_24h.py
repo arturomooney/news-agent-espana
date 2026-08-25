@@ -68,9 +68,6 @@ for medio, url in FUENTES.items():
             fecha_texto = noticia.get("published")
 
             if not fecha_texto:
-                fecha_texto = noticia.get("updated")
-
-            if not fecha_texto:
                 continue
 
             try:
