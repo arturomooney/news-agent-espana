@@ -6,6 +6,7 @@ FUENTES = {
     "El País": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
     "El Mundo": "https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml",
     "elDiario.es": "https://www.eldiario.es/rss",
+    "La Vanguardia": "https://www.lavanguardia.com/rss",
 }
 
 
