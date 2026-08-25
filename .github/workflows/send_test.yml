@@ -1,4 +1,4 @@
-name: Enviar mensaje de prueba
+name: 02 - Probar fuentes RSS
 
 on:
   workflow_dispatch:
