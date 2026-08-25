@@ -19,7 +19,13 @@ for medio, url in FUENTES.items():
     print("=" * 60)
 
     try:
-        respuesta = requests.get(url, timeout=20)
+        respuesta = requests.get(
+            url,
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            },
+            timeout=20
+        )
         respuesta.raise_for_status()
 
         contenido = respuesta.content
