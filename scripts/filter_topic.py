@@ -1,694 +1,338 @@
-import requests
-import feedparser
-from datetime import datetime, timedelta, timezone
-from email.utils import parsedate_to_datetime
+import re
 
+# ============================================================
+# FILTRO POLÍTICO ESTRICTO — v2
+# Reduce falsos positivos de sucesos, clima, tráfico, sociedad,
+# deportes, consumo, etc.
+# ============================================================
 
-FUENTES = {
-    "El País": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
-    "El Mundo": "https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml",
-    "elDiario.es": "https://www.eldiario.es/rss",
-    "La Vanguardia": "https://www.lavanguardia.com/rss/politica.xml",
-    "ABC": "https://www.abc.es/rss/2.0/portada",
+POLITICA = [
+    # Gobierno / instituciones
+    r"\bgobierno\b",
+    r"\bpresidente(?:a)?\b",
+    r"\bministro(?:a)?\b",
+    r"\bministerio\b",
+    r"\bmoncloa\b",
+    r"\bconsejo de ministros\b",
+    r"\bconsejo de seguridad nacional\b",
+    r"\bsecretario(?:a)? de estado\b",
+
+    # Parlamento / elecciones
+    r"\bcongreso\b",
+    r"\bsenado\b",
+    r"\bdiputad[oa]s?\b",
+    r"\bsenador(?:a)?\b",
+    r"\bparlamento\b",
+    r"\belecciones?\b",
+    r"\belectoral\b",
+    r"\bvotación\b",
+    r"\bvotos?\b",
+    r"\bmayoría parlamentaria\b",
+    r"\binvestidura\b",
+    r"\bmoción de censura\b",
+
+    # Partidos
+    r"\bpp\b",
+    r"\bpsoe\b",
+    r"\bvox\b",
+    r"\bsumar\b",
+    r"\bpodemos\b",
+    r"\berc\b",
+    r"\bjunts\b",
+    r"\bpnv\b",
+    r"\bbildu\b",
+    r"\bpartido político\b",
+    r"\bpartido\b",
+    r"\boposición\b",
+    r"\bgobernabilidad\b",
+
+    # Política territorial
+    r"\bcataluñ[ao]\b",
+    r"\bcatalán\b",
+    r"\bcatalana\b",
+    r"\bpaís vasco\b",
+    r"\beuskadi\b",
+    r"\bgalicia\b",
+    r"\bcomunidad de madrid\b",
+    r"\bcomunidades autónomas\b",
+    r"\bautonomía\b",
+    r"\bautonómico\b",
+    r"\bautonómica\b",
+    r"\bindependencia\b",
+    r"\bindependentismo\b",
+
+    # Estado / legislación / poder público
+    r"\bley\b",
+    r"\bdecreto\b",
+    r"\breforma legislativa\b",
+    r"\breforma legal\b",
+    r"\bproposición de ley\b",
+    r"\bproyecto de ley\b",
+    r"\bboletín oficial\b",
+    r"\btribunal constitucional\b",
+    r"\bfiscalía\b",
+    r"\bfiscal\b",
+    r"\btribunal supremo\b",
+    r"\bjusticia\b",
+    r"\bsentencia\b",
+
+    # Política internacional
+    r"\bpresidente de estados unidos\b",
+    r"\btrump\b",
+    r"\bue\b",
+    r"\bunión europea\b",
+    r"\bcomisión europea\b",
+    r"\bbruselas\b",
+    r"\botan\b",
+    r"\bdiplomacia\b",
+    r"\bsanciones\b",
+    r"\baranceles?\b",
+    r"\bpolítica exterior\b",
+    r"\brelaciones diplomáticas\b",
+
+    # Migración / seguridad cuando tienen dimensión política
+    r"\bpolítica migratoria\b",
+    r"\bcrisis migratoria\b",
+    r"\binmigración\b",
+    r"\bmigrantes?\b",
+    r"\bfrontera\b",
+    r"\bguardia civil\b",
+    r"\bministerio del interior\b",
+    r"\bseguridad nacional\b",
+]
+
+# ============================================================
+# EXCLUSIONES FUERTES
+# ============================================================
+
+NO_POLITICA = [
+    # Accidentes / sucesos
+    r"\baccidente\b",
+    r"\bmuere\b",
+    r"\bmuerto\b",
+    r"\bmuerta\b",
+    r"\bfallece\b",
+    r"\bfallecido\b",
+    r"\bcadáver(?:es)?\b",
+    r"\bdesaparecid[oa]\b",
+    r"\bbuscan\b",
+    r"\bherido(?:s|as)?\b",
+    r"\bincendio\b",
+    r"\bfuego\b",
+    r"\bexplosión\b",
+    r"\btemporal\b",
+    r"\bgranizada\b",
+    r"\binundaciones?\b",
+    r"\blluvias?\b",
+    r"\btormenta\b",
+
+    # Tráfico / transporte
+    r"\btráfico\b",
+    r"\bcarretera\b",
+    r"\bcarreteras\b",
+    r"\btúnel\b",
+    r"\bautopista\b",
+    r"\btrenes?\b",
+    r"\bvuelo\b",
+    r"\baeropuerto\b",
+    r"\bavión\b",
+    r"\baviones\b",
+
+    # Medio ambiente / animales
+    r"\bpalomas?\b",
+    r"\baves?\b",
+    r"\bgarrapatas?\b",
+    r"\bostras?\b",
+    r"\bmejillones?\b",
+    r"\bfauna\b",
+    r"\bflora\b",
+
+    # Sucesos policiales sin dimensión política clara
+    r"\brobo\b",
+    r"\brobaron\b",
+    r"\batraco\b",
+    r"\basesinato\b",
+    r"\bcrimen\b",
+    r"\bcrímenes\b",
+    r"\bdetenido\b",
+    r"\bdetenida\b",
+    r"\bdetenidos\b",
+    r"\bagresión\b",
+    r"\bviolencia\b",
+
+    # Salud / sociedad / consumo
+    r"\benfermedad\b",
+    r"\bhospital\b",
+    r"\bpaciente\b",
+    r"\bvivienda\b",
+    r"\balquiler\b",
+    r"\bhipoteca\b",
+    r"\bconsumo\b",
+    r"\bvecino\b",
+    r"\bvecinos\b",
+    r"\bmascotas?\b",
+
+    # Educación / empleo / sociedad cuando no hay política explícita
+    r"\btrabajador\b",
+    r"\btrabajadores\b",
+    r"\bhuelga\b",
+    r"\bempleo\b",
+    r"\bsalarios?\b",
+    r"\bteletrabajo\b",
+    r"\bcolegio\b",
+    r"\buniversidad\b",
+    r"\bestudiante\b",
+
+    # Deportes
+    r"\bfútbol\b",
+    r"\bbarça\b",
+    r"\bbarcelona\b",
+    r"\baficionados?\b",
+    r"\bpartido\b",
+    r"\bliga\b",
+    r"\bjugador\b",
+
+    # Cultura / entretenimiento
+    r"\bpelícula\b",
+    r"\bserie\b",
+    r"\bactor\b",
+    r"\bactriz\b",
+    r"\bmúsica\b",
+    r"\bconcierto\b",
+    r"\btelevisión\b",
+    r"\bradio\b",
+]
+
+# ============================================================
+# PALABRAS QUE POR SÍ SOLAS NO BASTAN
+# ============================================================
+
+AMBIGUAS = {
+    "partido",
+    "justicia",
+    "gobierno",
+    "estado",
+    "seguridad",
+    "crisis",
+    "economía",
+    "empresa",
+    "trabajadores",
+    "radio",
+    "barcelona",
+    "madrid",
 }
 
-
 # ============================================================
-# POLÍTICA
-# ============================================================
-
-PALABRAS_POLITICA = [
-    "gobierno",
-    "gobierno de españa",
-    "moncloa",
-    "congreso",
-    "senado",
-    "parlamento",
-    "parlament",
-    "cortes",
-    "diputados",
-    "senadores",
-    "ministro",
-    "ministra",
-    "presidente del gobierno",
-    "presidenta del gobierno",
-    "presidente autonómico",
-    "presidente autonomico",
-    "presidenta autonómica",
-    "presidenta autonomica",
-    "psoe",
-    "pp",
-    "vox",
-    "sumar",
-    "podemos",
-    "junts",
-    "erc",
-    "bildu",
-    "pnv",
-    "feijóo",
-    "feijoo",
-    "sánchez",
-    "sanchez",
-    "ayuso",
-    "puigdemont",
-    "yolanda díaz",
-    "yolanda diaz",
-    "elecciones",
-    "electoral",
-    "elección",
-    "eleccion",
-    "votación",
-    "votacion",
-    "investidura",
-    "moción de censura",
-    "mocion de censura",
-    "coalición de gobierno",
-    "coalicion de gobierno",
-    "pacto de gobierno",
-    "oposición",
-    "oposicion",
-    "presupuestos generales",
-    "boe",
-    "decreto ley",
-    "decreto-ley",
-    "reforma legal",
-    "reforma de la ley",
-    "ley de",
-    "amnistía",
-    "amnistia",
-    "inmigración",
-    "inmigracion",
-    "migrantes",
-    "migrantes",
-    "frontera",
-    "fronteras",
-    "ceuta",
-    "melilla",
-    "guardia civil",
-    "policía nacional",
-    "policia nacional",
-    "marlaska",
-    "interior",
-    "defensa",
-    "sanidad",
-    "justicia",
-    "fiscal general",
-    "tribunal constitucional",
-    "tribunal supremo",
-    "generalitat",
-    "xunta",
-]
-
-
-# ============================================================
-# ECONOMÍA
+# FUNCIÓN
 # ============================================================
 
-PALABRAS_ECONOMIA = [
-    "economía",
-    "economia",
-    "pib",
-    "crecimiento económico",
-    "crecimiento economico",
-    "inflación",
-    "inflacion",
-    "ipc",
-    "empleo",
-    "empleados",
-    "paro",
-    "desempleo",
-    "mercado laboral",
-    "salario",
-    "salarios",
-    "sueldo",
-    "sueldos",
-    "impuestos",
-    "fiscal",
-    "déficit",
-    "deficit",
-    "deuda pública",
-    "deuda publica",
-    "deuda del estado",
-    "presupuesto",
-    "presupuestos",
-    "banco de españa",
-    "banco central",
-    "bancos",
-    "banca",
-    "empresa",
-    "empresas",
-    "multinacional",
-    "energía",
-    "energia",
-    "electricidad",
-    "gas",
-    "petróleo",
-    "petroleo",
-    "vivienda",
-    "hipoteca",
-    "hipotecas",
-    "alquiler",
-    "alquileres",
-    "pensiones",
-    "pensión",
-    "pension",
-    "inversión",
-    "inversion",
-    "inversiones",
-    "mercados",
-    "mercado",
-    "industria",
-    "exportaciones",
-    "importaciones",
-    "consumo",
-    "producción",
-    "produccion",
-    "recesión",
-    "recesion",
-    "tipos de interés",
-    "tipos de interes",
-    "tipo de interés",
-    "tipo de interes",
-    "euríbor",
-    "euribor",
-    "finanzas",
-    "opa",
-    "cotización",
-    "cotizacion",
-    "acciones",
-    "bolsa",
-    "aranceles",
-    "arancel",
-    "comercio exterior",
-    "licitaciones",
-]
+def es_politica_estricta(titulo, categoria="", descripcion=""):
+    texto = " ".join([
+        str(titulo or ""),
+        str(categoria or ""),
+        str(descripcion or "")
+    ]).lower()
 
+    # Normalización básica
+    texto = re.sub(r"\s+", " ", texto)
 
-# ============================================================
-# TÉRMINOS QUE INDICAN ESPAÑA
-# ============================================================
+    # --------------------------------------------------------
+    # 1. Si contiene una exclusión muy clara, descartamos.
+    # --------------------------------------------------------
+    for patron in NO_POLITICA:
+        if re.search(patron, texto, re.IGNORECASE):
+            # Excepción: si además aparecen señales políticas
+            # MUY fuertes, permitimos que siga.
+            senales_fuertes = [
+                r"\bpresidente\b",
+                r"\bpresidenta\b",
+                r"\bministro\b",
+                r"\bministra\b",
+                r"\bmoncloa\b",
+                r"\bcongreso\b",
+                r"\bsenado\b",
+                r"\bpp\b",
+                r"\bpsoe\b",
+                r"\bvox\b",
+                r"\bsumar\b",
+                r"\bpodemos\b",
+                r"\bjunts\b",
+                r"\berc\b",
+                r"\bbildu\b",
+                r"\bpnv\b",
+                r"\belecciones?\b",
+                r"\bparlamento\b",
+                r"\bley\b",
+                r"\bdecreto\b",
+                r"\bcoalición\b",
+                r"\boposición\b",
+            ]
 
-PALABRAS_ESPANA = [
-    "españa",
-    "espana",
-    "español",
-    "española",
-    "espanol",
-    "espanola",
-    "madrid",
-    "barcelona",
-    "cataluña",
-    "cataluna",
-    "catalunya",
-    "andalucía",
-    "andalucia",
-    "valencia",
-    "galicia",
-    "país vasco",
-    "pais vasco",
-    "euskadi",
-    "navarra",
-    "aragón",
-    "aragon",
-    "castilla y león",
-    "castilla y leon",
-    "castilla-la mancha",
-    "extremadura",
-    "murcia",
-    "asturias",
-    "cantabria",
-    "canarias",
-    "baleares",
-    "ceuta",
-    "melilla",
-    "generalitat",
-    "parlament",
-    "xunta",
-]
+            if not any(
+                re.search(p, texto, re.IGNORECASE)
+                for p in senales_fuertes
+            ):
+                return False
 
+    # --------------------------------------------------------
+    # 2. Debe existir al menos UNA señal política explícita.
+    # --------------------------------------------------------
+    coincidencias = 0
 
-# ============================================================
-# SECCIONES CLARAMENTE EXCLUIDAS
-# ============================================================
+    for patron in POLITICA:
+        if re.search(patron, texto, re.IGNORECASE):
+            coincidencias += 1
 
-SECCIONES_EXCLUIDAS = [
-    "/deportes/",
-    "/futbol/",
-    "/fútbol/",
-    "/baloncesto/",
-    "/tenis/",
-    "/motor/",
-    "/cultura/",
-    "/television/",
-    "/televisión/",
-    "/cine/",
-    "/series/",
-    "/gastronomia/",
-    "/gastronomía/",
-    "/viajes/",
-    "/viaje/",
-    "/estilo/",
-    "/familia/",
-    "/salud/",
-    "/ciencia/",
-    "/medio-ambiente/",
-    "/medio-ambiente",
-    "/clima-y-medio-ambiente/",
-    "/sociedad/",
-    "/historia/",
-    "/play/",
-]
+    if coincidencias == 0:
+        return False
 
+    # --------------------------------------------------------
+    # 3. Para máxima precisión:
+    #    una sola palabra ambigua NO clasifica como política.
+    # --------------------------------------------------------
+    palabras_politicas_fuertes = [
+        r"\bpresidente(?:a)?\b",
+        r"\bministro(?:a)?\b",
+        r"\bministerio\b",
+        r"\bmoncloa\b",
+        r"\bcongreso\b",
+        r"\bsenado\b",
+        r"\bparlamento\b",
+        r"\belecciones?\b",
+        r"\belectoral\b",
+        r"\binvestidura\b",
+        r"\bmoción de censura\b",
+        r"\boposición\b",
+        r"\bcoalición\b",
+        r"\bpartido político\b",
+        r"\bpsoe\b",
+        r"\bvox\b",
+        r"\bsumar\b",
+        r"\bpodemos\b",
+        r"\bpp\b",
+        r"\bjunts\b",
+        r"\berc\b",
+        r"\bbildu\b",
+        r"\bpnv\b",
+        r"\bley\b",
+        r"\bdecreto\b",
+        r"\bproposición de ley\b",
+        r"\bproyecto de ley\b",
+        r"\btribunal constitucional\b",
+        r"\bpolítica migratoria\b",
+        r"\bseguridad nacional\b",
+        r"\bpolítica exterior\b",
+    ]
 
-# ============================================================
-# SECCIONES POLÍTICAS
-# ============================================================
-
-SECCIONES_POLITICA = [
-    "/politica/",
-    "/política/",
-    "/espana/politica/",
-    "/espana/política/",
-    "/espana/",
-    "/madrid/",
-    "/cataluna/",
-    "/catalunya/",
-    "/andalucia/",
-    "/galicia/",
-    "/pais-vasco/",
-    "/euskadi/",
-    "/navarra/",
-]
-
-
-# ============================================================
-# SECCIONES ECONÓMICAS
-# ============================================================
-
-SECCIONES_ECONOMIA = [
-    "/economia/",
-    "/economía/",
-    "/empresas/",
-    "/mercados/",
-    "/finanzas/",
-    "/banca/",
-    "/vivienda/",
-]
-
-
-# ============================================================
-# RUIDO: PALABRAS QUE SUELE SER MEJOR DESCARTAR
-# ============================================================
-
-PALABRAS_RUIDO = [
-    "podcast",
-    "horóscopo",
-    "horoscopo",
-    "receta",
-    "recetas",
-    "moda",
-    "belleza",
-    "restaurante",
-    "restaurantes",
-    "gastronomía",
-    "gastronomia",
-    "viaje",
-    "viajes",
-    "película",
-    "pelicula",
-    "serie",
-    "series",
-    "actor",
-    "actriz",
-    "fútbol",
-    "futbol",
-    "baloncesto",
-    "tenis",
-    "motor",
-    "videojuego",
-    "videojuegos",
-    "libro",
-    "novela",
-    "música",
-    "musica",
-    "concierto",
-    "arte",
-    "artista",
-    "historia",
-    "arqueología",
-    "arqueologia",
-]
-
-
-# ============================================================
-# TÉRMINOS DEMASIADO GENÉRICOS
-# No deben servir solos para clasificar una noticia.
-# ============================================================
-
-PALABRAS_DEBILES = [
-    "ley",
-    "presidente",
-    "presidenta",
-    "empresa",
-    "empresas",
-    "madrid",
-    "barcelona",
-    "españa",
-    "espana",
-    "español",
-    "española",
-    "espanol",
-    "espanola",
-    "mercado",
-    "banco",
-    "bancos",
-    "gobierno",
-]
-
-
-AHORA = datetime.now(timezone.utc)
-HACE_24_HORAS = AHORA - timedelta(hours=24)
-
-
-def contiene_alguna(texto, palabras):
-    return any(
-        palabra in texto
-        for palabra in palabras
+    tiene_senal_fuerte = any(
+        re.search(p, texto, re.IGNORECASE)
+        for p in palabras_politicas_fuertes
     )
 
-
-def contar_coincidencias(texto, palabras):
-    return sum(
-        1
-        for palabra in palabras
-        if palabra in texto
-    )
-
-
-def normalizar(texto):
-    return texto.lower().strip()
-
-
-print("=" * 70)
-print("FILTRO TEMÁTICO — POLÍTICA Y ECONOMÍA DE ESPAÑA")
-print("=" * 70)
-print()
-print(f"Ahora (UTC): {AHORA.isoformat()}")
-print(f"Desde (UTC): {HACE_24_HORAS.isoformat()}")
-print()
-
-
-for medio, url in FUENTES.items():
-
-    print("=" * 70)
-    print(medio)
-    print("=" * 70)
-
-    try:
-
-        respuesta = requests.get(
-            url,
-            headers={
-                "User-Agent": "Mozilla/5.0"
-            },
-            timeout=20
-        )
-
-        respuesta.raise_for_status()
-
-        contenido = respuesta.content
-
-        if medio == "La Vanguardia":
-            contenido = contenido.decode(
-                "utf-8",
-                errors="replace"
-            ).encode("utf-8")
-
-        feed = feedparser.parse(contenido)
-
-        if feed.bozo and not feed.entries:
-            print("❌ No se pudo leer el RSS")
-            print(feed.bozo_exception)
-            continue
-
-        seleccionadas = []
-
-        for noticia in feed.entries:
-
-            fecha_texto = noticia.get(
-                "published"
-            )
-
-            if not fecha_texto:
-                continue
-
-            try:
-
-                fecha = parsedate_to_datetime(
-                    fecha_texto
-                )
-
-                if fecha.tzinfo is None:
-                    fecha = fecha.replace(
-                        tzinfo=timezone.utc
-                    )
-
-                fecha_utc = fecha.astimezone(
-                    timezone.utc
-                )
-
-            except Exception:
-                continue
-
-            if not (
-                HACE_24_HORAS
-                <= fecha_utc
-                <= AHORA
-            ):
-                continue
-
-            titulo = noticia.get(
-                "title",
-                ""
-            ).strip()
-
-            descripcion = noticia.get(
-                "summary",
-                ""
-            ).strip()
-
-            url_noticia = noticia.get(
-                "link",
-                ""
-            ).strip()
-
-            titulo_normalizado = normalizar(
-                titulo
-            )
-
-            descripcion_normalizada = normalizar(
-                descripcion
-            )
-
-            url_normalizada = normalizar(
-                url_noticia
-            )
-
-            texto = (
-                f"{titulo_normalizado} "
-                f"{descripcion_normalizada}"
-            )
-
-            # ------------------------------------------------
-            # EXCLUSIONES
-            # ------------------------------------------------
-
-            if contiene_alguna(
-                url_normalizada,
-                SECCIONES_EXCLUIDAS
-            ):
-                continue
-
-            if contiene_alguna(
-                titulo_normalizado,
-                PALABRAS_RUIDO
-            ):
-                continue
-
-            # ------------------------------------------------
-            # SECCIÓN DEL MEDIO
-            # ------------------------------------------------
-
-            politica_seccion = contiene_alguna(
-                url_normalizada,
-                SECCIONES_POLITICA
-            )
-
-            economia_seccion = contiene_alguna(
-                url_normalizada,
-                SECCIONES_ECONOMIA
-            )
-
-            # ------------------------------------------------
-            # COINCIDENCIAS TEMÁTICAS
-            # ------------------------------------------------
-
-            coincidencias_politica = contar_coincidencias(
-                texto,
-                PALABRAS_POLITICA
-            )
-
-            coincidencias_economia = contar_coincidencias(
-                texto,
-                PALABRAS_ECONOMIA
-            )
-
-            coincidencias_espana = contar_coincidencias(
-                texto,
-                PALABRAS_ESPANA
-            )
-
-            coincidencias_debiles = contar_coincidencias(
-                texto,
-                PALABRAS_DEBILES
-            )
-
-            # ------------------------------------------------
-            # POLÍTICA
-            #
-            # Si la URL está claramente en política,
-            # aceptamos.
-            #
-            # Si no, necesitamos al menos dos señales
-            # políticas, o una señal fuerte + España.
-            # ------------------------------------------------
-
-            es_politica = False
-
-            if politica_seccion:
-                es_politica = True
-
-            elif coincidencias_politica >= 2:
-                es_politica = True
-
-            elif (
-                coincidencias_politica >= 1
-                and coincidencias_espana >= 1
-                and coincidencias_debiles < 3
-            ):
-                es_politica = True
-
-            # ------------------------------------------------
-            # ECONOMÍA
-            #
-            # Una sección económica clara alcanza.
-            #
-            # Fuera de ella necesitamos señales económicas
-            # suficientes.
-            # ------------------------------------------------
-
-            es_economia = False
-
-            if economia_seccion:
-                es_economia = True
-
-            elif coincidencias_economia >= 2:
-                es_economia = True
-
-            elif (
-                coincidencias_economia >= 1
-                and coincidencias_espana >= 1
-                and coincidencias_debiles < 3
-            ):
-                es_economia = True
-
-            # ------------------------------------------------
-            # FILTRO FINAL
-            # ------------------------------------------------
-
-            if not (
-                es_politica
-                or es_economia
-            ):
-                continue
-
-            # Si la noticia NO pertenece a una sección
-            # política/económica clara, exigimos además
-            # alguna conexión explícita con España.
-
-            if not (
-                politica_seccion
-                or economia_seccion
-            ):
-
-                if coincidencias_espana == 0:
-                    continue
-
-            seleccionadas.append({
-                "titulo": titulo,
-                "url": url_noticia,
-                "fecha": fecha_utc,
-                "politica": es_politica,
-                "economia": es_economia,
-            })
-
-        # ----------------------------------------------------
-        # ORDENAR POR FECHA
-        # ----------------------------------------------------
-
-        seleccionadas.sort(
-            key=lambda noticia: noticia["fecha"],
-            reverse=True
-        )
-
-        print(
-            f"Noticias seleccionadas: "
-            f"{len(seleccionadas)}"
-        )
-
-        print()
-
-        for noticia in seleccionadas:
-
-            categorias = []
-
-            if noticia["politica"]:
-                categorias.append(
-                    "POLÍTICA"
-                )
-
-            if noticia["economia"]:
-                categorias.append(
-                    "ECONOMÍA"
-                )
-
-            categoria = " + ".join(
-                categorias
-            )
-
-            print(
-                f"[{categoria}]"
-            )
-
-            print(
-                noticia["fecha"].isoformat()
-            )
-
-            print(
-                noticia["titulo"]
-            )
-
-            print(
-                noticia["url"]
-            )
-
-            print(
-                "-" * 70
-            )
-
-    except Exception as error:
-
-        print("❌ ERROR")
-        print(error)
-
-    print()
+    # --------------------------------------------------------
+    # 4. Si solo hay señales débiles/ambiguas, descartamos.
+    # --------------------------------------------------------
+    if not tiene_senal_fuerte:
+        return False
+
+    return True
