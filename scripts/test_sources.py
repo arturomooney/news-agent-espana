@@ -21,7 +21,12 @@ for medio, url in FUENTES.items():
         respuesta = requests.get(url, timeout=20)
         respuesta.raise_for_status()
 
-        feed = feedparser.parse(respuesta.content)
+        contenido = respuesta.content
+
+        if medio == "La Vanguardia":
+            contenido = contenido.decode("utf-8", errors="replace").encode("utf-8")
+
+        feed = feedparser.parse(contenido)
 
         if feed.bozo:
             print("❌ Error al leer el RSS")
