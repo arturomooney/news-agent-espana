@@ -15,6 +15,7 @@ FUENTES = {
 
 PALABRAS_POLITICA = [
     "gobierno",
+    "gobierno de españa",
     "congreso",
     "senado",
     "moncloa",
@@ -34,6 +35,10 @@ PALABRAS_POLITICA = [
     "ayuso",
     "elecciones",
     "electoral",
+    "elección",
+    "eleccion",
+    "partido político",
+    "partido politico",
     "ley",
     "decreto",
     "diputados",
@@ -41,9 +46,22 @@ PALABRAS_POLITICA = [
     "parlamento",
     "cortes",
     "boe",
-    "presupuestos",
+    "presupuestos generales",
     "moción de censura",
+    "mocion de censura",
     "investidura",
+    "oposición",
+    "oposicion",
+    "coalición",
+    "coalicion",
+    "pacto de gobierno",
+    "gobierno autonómico",
+    "gobierno autonomico",
+    "presidente autonómico",
+    "presidente autonomico",
+    "generalitat",
+    "parlament",
+    "xunta",
 ]
 
 
@@ -55,6 +73,7 @@ PALABRAS_ECONOMIA = [
     "inflacion",
     "ipc",
     "empleo",
+    "empleados",
     "paro",
     "desempleo",
     "salarios",
@@ -63,7 +82,8 @@ PALABRAS_ECONOMIA = [
     "fiscal",
     "déficit",
     "deficit",
-    "deuda",
+    "deuda pública",
+    "deuda publica",
     "banco de españa",
     "bancos",
     "empresa",
@@ -81,6 +101,22 @@ PALABRAS_ECONOMIA = [
     "inversión",
     "inversion",
     "industria",
+    "exportaciones",
+    "importaciones",
+    "consumo",
+    "producción",
+    "produccion",
+    "crecimiento económico",
+    "crecimiento economico",
+    "recesión",
+    "recesion",
+    "tipo de interés",
+    "tipos de interés",
+    "tipos de interes",
+    "euríbor",
+    "euribor",
+    "banco central",
+    "finanzas",
 ]
 
 
@@ -106,6 +142,7 @@ PALABRAS_ESPANA = [
     "aragón",
     "aragon",
     "castilla y león",
+    "castilla y leon",
     "castilla-la mancha",
     "extremadura",
     "murcia",
@@ -125,38 +162,65 @@ SECCIONES_EXCLUIDAS = [
     "/deportes/",
     "/futbol/",
     "/baloncesto/",
+    "/tenis/",
+    "/motor/",
     "/cultura/",
     "/television/",
+    "/televisión/",
     "/cine/",
+    "/series/",
     "/gastronomia/",
+    "/gastronomía/",
     "/viajes/",
-    "/ciencia/",
-    "/salud/",
-    "/sociedad/",
     "/estilo/",
-    "/motor/",
+    "/familia/",
+    "/salud/",
+    "/ciencia/",
+    "/medio-ambiente/",
+    "/clima-y-medio-ambiente/",
 ]
 
 
-SECCIONES_POLITICA = [
+SECCIONES_POLITICA_FUERTE = [
     "/politica/",
-    "/espana/",
-    "/madrid/",
-    "/cataluna/",
-    "/catalunya/",
-    "/andalucia/",
-    "/galicia/",
-    "/pais-vasco/",
-    "/euskadi/",
+    "/política/",
+    "/espana/politica/",
+    "/espana/política/",
 ]
 
 
-SECCIONES_ECONOMIA = [
+SECCIONES_ECONOMIA_FUERTE = [
     "/economia/",
-    "/economia",
+    "/economía/",
     "/empresas/",
     "/mercados/",
     "/finanzas/",
+]
+
+
+PALABRAS_RUIDO = [
+    "podcast",
+    "horóscopo",
+    "horoscopo",
+    "receta",
+    "recetas",
+    "moda",
+    "belleza",
+    "restaurante",
+    "restaurantes",
+    "viaje",
+    "viajes",
+    "película",
+    "pelicula",
+    "serie",
+    "series",
+    "actor",
+    "actriz",
+    "fútbol",
+    "futbol",
+    "baloncesto",
+    "tenis",
+    "motor",
 ]
 
 
@@ -166,6 +230,10 @@ HACE_24_HORAS = AHORA - timedelta(hours=24)
 
 def contiene_alguna(texto, palabras):
     return any(palabra in texto for palabra in palabras)
+
+
+def normalizar(texto):
+    return texto.lower().strip()
 
 
 print("=" * 70)
@@ -191,6 +259,7 @@ for medio, url in FUENTES.items():
             },
             timeout=20
         )
+
         respuesta.raise_for_status()
 
         contenido = respuesta.content
@@ -221,45 +290,80 @@ for medio, url in FUENTES.items():
                 fecha = parsedate_to_datetime(fecha_texto)
 
                 if fecha.tzinfo is None:
-                    fecha = fecha.replace(tzinfo=timezone.utc)
+                    fecha = fecha.replace(
+                        tzinfo=timezone.utc
+                    )
 
-                fecha_utc = fecha.astimezone(timezone.utc)
+                fecha_utc = fecha.astimezone(
+                    timezone.utc
+                )
 
             except Exception:
                 continue
 
-            if not (HACE_24_HORAS <= fecha_utc <= AHORA):
+            if not (
+                HACE_24_HORAS
+                <= fecha_utc
+                <= AHORA
+            ):
                 continue
 
-            titulo = noticia.get("title", "").strip()
-            descripcion = noticia.get("summary", "").strip()
-            url_noticia = noticia.get("link", "").lower()
+            titulo = noticia.get(
+                "title",
+                ""
+            ).strip()
 
-            texto = f"{titulo} {descripcion}".lower()
+            descripcion = noticia.get(
+                "summary",
+                ""
+            ).strip()
+
+            url_noticia = noticia.get(
+                "link",
+                ""
+            ).strip()
+
+            titulo_normalizado = normalizar(titulo)
+            descripcion_normalizada = normalizar(
+                descripcion
+            )
+            url_normalizada = normalizar(
+                url_noticia
+            )
+
+            texto = (
+                f"{titulo_normalizado} "
+                f"{descripcion_normalizada}"
+            )
 
             es_excluida = contiene_alguna(
-                url_noticia,
+                url_normalizada,
                 SECCIONES_EXCLUIDAS
             )
 
-            es_politica_seccion = contiene_alguna(
-                url_noticia,
-                SECCIONES_POLITICA
+            tiene_ruido = contiene_alguna(
+                titulo_normalizado,
+                PALABRAS_RUIDO
             )
 
-            es_economia_seccion = contiene_alguna(
-                url_noticia,
-                SECCIONES_ECONOMIA
+            politica_por_seccion = contiene_alguna(
+                url_normalizada,
+                SECCIONES_POLITICA_FUERTE
             )
 
-            es_politica = (
-                es_politica_seccion
-                or contiene_alguna(texto, PALABRAS_POLITICA)
+            economia_por_seccion = contiene_alguna(
+                url_normalizada,
+                SECCIONES_ECONOMIA_FUERTE
             )
 
-            es_economia = (
-                es_economia_seccion
-                or contiene_alguna(texto, PALABRAS_ECONOMIA)
+            politica_por_texto = contiene_alguna(
+                texto,
+                PALABRAS_POLITICA
+            )
+
+            economia_por_texto = contiene_alguna(
+                texto,
+                PALABRAS_ECONOMIA
             )
 
             es_espana = contiene_alguna(
@@ -267,11 +371,31 @@ for medio, url in FUENTES.items():
                 PALABRAS_ESPANA
             )
 
-            if not es_excluida and (es_politica or es_economia) and es_espana:
+            es_politica = (
+                politica_por_seccion
+                or (
+                    politica_por_texto
+                    and es_espana
+                )
+            )
+
+            es_economia = (
+                economia_por_seccion
+                or (
+                    economia_por_texto
+                    and es_espana
+                )
+            )
+
+            if (
+                not es_excluida
+                and not tiene_ruido
+                and (es_politica or es_economia)
+            ):
 
                 seleccionadas.append({
                     "titulo": titulo,
-                    "url": noticia.get("link", ""),
+                    "url": url_noticia,
                     "fecha": fecha_utc,
                     "politica": es_politica,
                     "economia": es_economia,
@@ -282,7 +406,10 @@ for medio, url in FUENTES.items():
             reverse=True
         )
 
-        print(f"Noticias seleccionadas: {len(seleccionadas)}")
+        print(
+            f"Noticias seleccionadas: "
+            f"{len(seleccionadas)}"
+        )
         print()
 
         for noticia in seleccionadas:
