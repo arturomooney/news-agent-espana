@@ -121,6 +121,45 @@ PALABRAS_ESPANA = [
 ]
 
 
+SECCIONES_EXCLUIDAS = [
+    "/deportes/",
+    "/futbol/",
+    "/baloncesto/",
+    "/cultura/",
+    "/television/",
+    "/cine/",
+    "/gastronomia/",
+    "/viajes/",
+    "/ciencia/",
+    "/salud/",
+    "/sociedad/",
+    "/estilo/",
+    "/motor/",
+]
+
+
+SECCIONES_POLITICA = [
+    "/politica/",
+    "/espana/",
+    "/madrid/",
+    "/cataluna/",
+    "/catalunya/",
+    "/andalucia/",
+    "/galicia/",
+    "/pais-vasco/",
+    "/euskadi/",
+]
+
+
+SECCIONES_ECONOMIA = [
+    "/economia/",
+    "/economia",
+    "/empresas/",
+    "/mercados/",
+    "/finanzas/",
+]
+
+
 AHORA = datetime.now(timezone.utc)
 HACE_24_HORAS = AHORA - timedelta(hours=24)
 
@@ -194,17 +233,33 @@ for medio, url in FUENTES.items():
 
             titulo = noticia.get("title", "").strip()
             descripcion = noticia.get("summary", "").strip()
+            url_noticia = noticia.get("link", "").lower()
 
             texto = f"{titulo} {descripcion}".lower()
 
-            es_politica = contiene_alguna(
-                texto,
-                PALABRAS_POLITICA
+            es_excluida = contiene_alguna(
+                url_noticia,
+                SECCIONES_EXCLUIDAS
             )
 
-            es_economia = contiene_alguna(
-                texto,
-                PALABRAS_ECONOMIA
+            es_politica_seccion = contiene_alguna(
+                url_noticia,
+                SECCIONES_POLITICA
+            )
+
+            es_economia_seccion = contiene_alguna(
+                url_noticia,
+                SECCIONES_ECONOMIA
+            )
+
+            es_politica = (
+                es_politica_seccion
+                or contiene_alguna(texto, PALABRAS_POLITICA)
+            )
+
+            es_economia = (
+                es_economia_seccion
+                or contiene_alguna(texto, PALABRAS_ECONOMIA)
             )
 
             es_espana = contiene_alguna(
@@ -212,7 +267,7 @@ for medio, url in FUENTES.items():
                 PALABRAS_ESPANA
             )
 
-            if (es_politica or es_economia) and es_espana:
+            if not es_excluida and (es_politica or es_economia) and es_espana:
 
                 seleccionadas.append({
                     "titulo": titulo,
