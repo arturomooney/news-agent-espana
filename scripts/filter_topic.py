@@ -335,3 +335,5 @@ def es_politica_estricta(titulo, categoria="", descripcion=""):
     # --------------------------------------------------------
 
     return False
+    if __name__ == "__main__":
+    print("Filtro político-económico cargado correctamente.")
