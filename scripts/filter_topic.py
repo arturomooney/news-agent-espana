@@ -13,58 +13,103 @@ FUENTES = {
 }
 
 
+# ============================================================
+# POLÍTICA
+# ============================================================
+
 PALABRAS_POLITICA = [
     "gobierno",
     "gobierno de españa",
+    "moncloa",
     "congreso",
     "senado",
-    "moncloa",
+    "parlamento",
+    "parlament",
+    "cortes",
+    "diputados",
+    "senadores",
     "ministro",
     "ministra",
+    "presidente del gobierno",
+    "presidenta del gobierno",
+    "presidente autonómico",
+    "presidente autonomico",
+    "presidenta autonómica",
+    "presidenta autonomica",
     "psoe",
     "pp",
     "vox",
     "sumar",
     "podemos",
+    "junts",
+    "erc",
+    "bildu",
+    "pnv",
     "feijóo",
     "feijoo",
     "sánchez",
     "sanchez",
     "ayuso",
+    "puigdemont",
+    "yolanda díaz",
+    "yolanda diaz",
     "elecciones",
     "electoral",
     "elección",
     "eleccion",
-    "partido político",
-    "partido politico",
-    "diputados",
-    "senadores",
-    "parlamento",
-    "cortes",
-    "boe",
-    "presupuestos generales",
+    "votación",
+    "votacion",
+    "investidura",
     "moción de censura",
     "mocion de censura",
-    "investidura",
+    "coalición de gobierno",
+    "coalicion de gobierno",
+    "pacto de gobierno",
     "oposición",
     "oposicion",
-    "coalición",
-    "coalicion",
-    "pacto de gobierno",
-    "gobierno autonómico",
-    "gobierno autonomico",
-    "presidente autonómico",
-    "presidente autonomico",
+    "presupuestos generales",
+    "boe",
+    "decreto ley",
+    "decreto-ley",
+    "reforma legal",
+    "reforma de la ley",
+    "ley de",
+    "amnistía",
+    "amnistia",
+    "inmigración",
+    "inmigracion",
+    "migrantes",
+    "migrantes",
+    "frontera",
+    "fronteras",
+    "ceuta",
+    "melilla",
+    "guardia civil",
+    "policía nacional",
+    "policia nacional",
+    "marlaska",
+    "interior",
+    "defensa",
+    "sanidad",
+    "justicia",
+    "fiscal general",
+    "tribunal constitucional",
+    "tribunal supremo",
     "generalitat",
-    "parlament",
     "xunta",
 ]
 
+
+# ============================================================
+# ECONOMÍA
+# ============================================================
 
 PALABRAS_ECONOMIA = [
     "economía",
     "economia",
     "pib",
+    "crecimiento económico",
+    "crecimiento economico",
     "inflación",
     "inflacion",
     "ipc",
@@ -72,49 +117,76 @@ PALABRAS_ECONOMIA = [
     "empleados",
     "paro",
     "desempleo",
-    "salarios",
+    "mercado laboral",
     "salario",
+    "salarios",
+    "sueldo",
+    "sueldos",
     "impuestos",
     "fiscal",
     "déficit",
     "deficit",
     "deuda pública",
     "deuda publica",
+    "deuda del estado",
+    "presupuesto",
+    "presupuestos",
     "banco de españa",
+    "banco central",
     "bancos",
+    "banca",
     "empresa",
     "empresas",
+    "multinacional",
     "energía",
     "energia",
+    "electricidad",
+    "gas",
+    "petróleo",
+    "petroleo",
     "vivienda",
-    "hipotecas",
     "hipoteca",
+    "hipotecas",
+    "alquiler",
+    "alquileres",
     "pensiones",
     "pensión",
     "pension",
-    "mercado laboral",
-    "mercados",
     "inversión",
     "inversion",
+    "inversiones",
+    "mercados",
+    "mercado",
     "industria",
     "exportaciones",
     "importaciones",
     "consumo",
     "producción",
     "produccion",
-    "crecimiento económico",
-    "crecimiento economico",
     "recesión",
     "recesion",
-    "tipo de interés",
     "tipos de interés",
     "tipos de interes",
+    "tipo de interés",
+    "tipo de interes",
     "euríbor",
     "euribor",
-    "banco central",
     "finanzas",
+    "opa",
+    "cotización",
+    "cotizacion",
+    "acciones",
+    "bolsa",
+    "aranceles",
+    "arancel",
+    "comercio exterior",
+    "licitaciones",
 ]
 
+
+# ============================================================
+# TÉRMINOS QUE INDICAN ESPAÑA
+# ============================================================
 
 PALABRAS_ESPANA = [
     "españa",
@@ -127,6 +199,7 @@ PALABRAS_ESPANA = [
     "barcelona",
     "cataluña",
     "cataluna",
+    "catalunya",
     "andalucía",
     "andalucia",
     "valencia",
@@ -154,9 +227,14 @@ PALABRAS_ESPANA = [
 ]
 
 
+# ============================================================
+# SECCIONES CLARAMENTE EXCLUIDAS
+# ============================================================
+
 SECCIONES_EXCLUIDAS = [
     "/deportes/",
     "/futbol/",
+    "/fútbol/",
     "/baloncesto/",
     "/tenis/",
     "/motor/",
@@ -168,31 +246,59 @@ SECCIONES_EXCLUIDAS = [
     "/gastronomia/",
     "/gastronomía/",
     "/viajes/",
+    "/viaje/",
     "/estilo/",
     "/familia/",
     "/salud/",
     "/ciencia/",
     "/medio-ambiente/",
+    "/medio-ambiente",
     "/clima-y-medio-ambiente/",
+    "/sociedad/",
+    "/historia/",
+    "/play/",
 ]
 
 
-SECCIONES_POLITICA_FUERTE = [
+# ============================================================
+# SECCIONES POLÍTICAS
+# ============================================================
+
+SECCIONES_POLITICA = [
     "/politica/",
     "/política/",
     "/espana/politica/",
     "/espana/política/",
+    "/espana/",
+    "/madrid/",
+    "/cataluna/",
+    "/catalunya/",
+    "/andalucia/",
+    "/galicia/",
+    "/pais-vasco/",
+    "/euskadi/",
+    "/navarra/",
 ]
 
 
-SECCIONES_ECONOMIA_FUERTE = [
+# ============================================================
+# SECCIONES ECONÓMICAS
+# ============================================================
+
+SECCIONES_ECONOMIA = [
     "/economia/",
     "/economía/",
     "/empresas/",
     "/mercados/",
     "/finanzas/",
+    "/banca/",
+    "/vivienda/",
 ]
 
+
+# ============================================================
+# RUIDO: PALABRAS QUE SUELE SER MEJOR DESCARTAR
+# ============================================================
 
 PALABRAS_RUIDO = [
     "podcast",
@@ -204,6 +310,8 @@ PALABRAS_RUIDO = [
     "belleza",
     "restaurante",
     "restaurantes",
+    "gastronomía",
+    "gastronomia",
     "viaje",
     "viajes",
     "película",
@@ -217,6 +325,44 @@ PALABRAS_RUIDO = [
     "baloncesto",
     "tenis",
     "motor",
+    "videojuego",
+    "videojuegos",
+    "libro",
+    "novela",
+    "música",
+    "musica",
+    "concierto",
+    "arte",
+    "artista",
+    "historia",
+    "arqueología",
+    "arqueologia",
+]
+
+
+# ============================================================
+# TÉRMINOS DEMASIADO GENÉRICOS
+# No deben servir solos para clasificar una noticia.
+# ============================================================
+
+PALABRAS_DEBILES = [
+    "ley",
+    "presidente",
+    "presidenta",
+    "empresa",
+    "empresas",
+    "madrid",
+    "barcelona",
+    "españa",
+    "espana",
+    "español",
+    "española",
+    "espanol",
+    "espanola",
+    "mercado",
+    "banco",
+    "bancos",
+    "gobierno",
 ]
 
 
@@ -225,7 +371,18 @@ HACE_24_HORAS = AHORA - timedelta(hours=24)
 
 
 def contiene_alguna(texto, palabras):
-    return any(palabra in texto for palabra in palabras)
+    return any(
+        palabra in texto
+        for palabra in palabras
+    )
+
+
+def contar_coincidencias(texto, palabras):
+    return sum(
+        1
+        for palabra in palabras
+        if palabra in texto
+    )
 
 
 def normalizar(texto):
@@ -248,6 +405,7 @@ for medio, url in FUENTES.items():
     print("=" * 70)
 
     try:
+
         respuesta = requests.get(
             url,
             headers={
@@ -277,13 +435,18 @@ for medio, url in FUENTES.items():
 
         for noticia in feed.entries:
 
-            fecha_texto = noticia.get("published")
+            fecha_texto = noticia.get(
+                "published"
+            )
 
             if not fecha_texto:
                 continue
 
             try:
-                fecha = parsedate_to_datetime(fecha_texto)
+
+                fecha = parsedate_to_datetime(
+                    fecha_texto
+                )
 
                 if fecha.tzinfo is None:
                     fecha = fecha.replace(
@@ -319,10 +482,14 @@ for medio, url in FUENTES.items():
                 ""
             ).strip()
 
-            titulo_normalizado = normalizar(titulo)
+            titulo_normalizado = normalizar(
+                titulo
+            )
+
             descripcion_normalizada = normalizar(
                 descripcion
             )
+
             url_normalizada = normalizar(
                 url_noticia
             )
@@ -332,70 +499,142 @@ for medio, url in FUENTES.items():
                 f"{descripcion_normalizada}"
             )
 
-            es_excluida = contiene_alguna(
+            # ------------------------------------------------
+            # EXCLUSIONES
+            # ------------------------------------------------
+
+            if contiene_alguna(
                 url_normalizada,
                 SECCIONES_EXCLUIDAS
-            )
+            ):
+                continue
 
-            tiene_ruido = contiene_alguna(
+            if contiene_alguna(
                 titulo_normalizado,
                 PALABRAS_RUIDO
-            )
+            ):
+                continue
 
-            politica_por_seccion = contiene_alguna(
+            # ------------------------------------------------
+            # SECCIÓN DEL MEDIO
+            # ------------------------------------------------
+
+            politica_seccion = contiene_alguna(
                 url_normalizada,
-                SECCIONES_POLITICA_FUERTE
+                SECCIONES_POLITICA
             )
 
-            economia_por_seccion = contiene_alguna(
+            economia_seccion = contiene_alguna(
                 url_normalizada,
-                SECCIONES_ECONOMIA_FUERTE
+                SECCIONES_ECONOMIA
             )
 
-            politica_por_texto = contiene_alguna(
+            # ------------------------------------------------
+            # COINCIDENCIAS TEMÁTICAS
+            # ------------------------------------------------
+
+            coincidencias_politica = contar_coincidencias(
                 texto,
                 PALABRAS_POLITICA
             )
 
-            economia_por_texto = contiene_alguna(
+            coincidencias_economia = contar_coincidencias(
                 texto,
                 PALABRAS_ECONOMIA
             )
 
-            es_espana = contiene_alguna(
+            coincidencias_espana = contar_coincidencias(
                 texto,
                 PALABRAS_ESPANA
             )
 
-            es_politica = (
-                politica_por_seccion
-                or (
-                    politica_por_texto
-                    and es_espana
-                )
+            coincidencias_debiles = contar_coincidencias(
+                texto,
+                PALABRAS_DEBILES
             )
 
-            es_economia = (
-                economia_por_seccion
-                or (
-                    economia_por_texto
-                    and es_espana
-                )
-            )
+            # ------------------------------------------------
+            # POLÍTICA
+            #
+            # Si la URL está claramente en política,
+            # aceptamos.
+            #
+            # Si no, necesitamos al menos dos señales
+            # políticas, o una señal fuerte + España.
+            # ------------------------------------------------
 
-            if (
-                not es_excluida
-                and not tiene_ruido
-                and (es_politica or es_economia)
+            es_politica = False
+
+            if politica_seccion:
+                es_politica = True
+
+            elif coincidencias_politica >= 2:
+                es_politica = True
+
+            elif (
+                coincidencias_politica >= 1
+                and coincidencias_espana >= 1
+                and coincidencias_debiles < 3
+            ):
+                es_politica = True
+
+            # ------------------------------------------------
+            # ECONOMÍA
+            #
+            # Una sección económica clara alcanza.
+            #
+            # Fuera de ella necesitamos señales económicas
+            # suficientes.
+            # ------------------------------------------------
+
+            es_economia = False
+
+            if economia_seccion:
+                es_economia = True
+
+            elif coincidencias_economia >= 2:
+                es_economia = True
+
+            elif (
+                coincidencias_economia >= 1
+                and coincidencias_espana >= 1
+                and coincidencias_debiles < 3
+            ):
+                es_economia = True
+
+            # ------------------------------------------------
+            # FILTRO FINAL
+            # ------------------------------------------------
+
+            if not (
+                es_politica
+                or es_economia
+            ):
+                continue
+
+            # Si la noticia NO pertenece a una sección
+            # política/económica clara, exigimos además
+            # alguna conexión explícita con España.
+
+            if not (
+                politica_seccion
+                or economia_seccion
             ):
 
-                seleccionadas.append({
-                    "titulo": titulo,
-                    "url": url_noticia,
-                    "fecha": fecha_utc,
-                    "politica": es_politica,
-                    "economia": es_economia,
-                })
+                if coincidencias_espana == 0:
+                    continue
+
+            seleccionadas.append({
+                "titulo": titulo,
+                "url": url_noticia,
+                "fecha": fecha_utc,
+                "politica": es_politica,
+                "economia": es_economia,
+            })
+
+        # ----------------------------------------------------
+        # ORDENAR POR FECHA
+        # ----------------------------------------------------
 
         seleccionadas.sort(
             key=lambda noticia: noticia["fecha"],
@@ -406,6 +645,7 @@ for medio, url in FUENTES.items():
             f"Noticias seleccionadas: "
             f"{len(seleccionadas)}"
         )
+
         print()
 
         for noticia in seleccionadas:
@@ -413,18 +653,38 @@ for medio, url in FUENTES.items():
             categorias = []
 
             if noticia["politica"]:
-                categorias.append("POLÍTICA")
+                categorias.append(
+                    "POLÍTICA"
+                )
 
             if noticia["economia"]:
-                categorias.append("ECONOMÍA")
+                categorias.append(
+                    "ECONOMÍA"
+                )
 
-            categoria = " + ".join(categorias)
+            categoria = " + ".join(
+                categorias
+            )
 
-            print(f"[{categoria}]")
-            print(noticia["fecha"].isoformat())
-            print(noticia["titulo"])
-            print(noticia["url"])
-            print("-" * 70)
+            print(
+                f"[{categoria}]"
+            )
+
+            print(
+                noticia["fecha"].isoformat()
+            )
+
+            print(
+                noticia["titulo"]
+            )
+
+            print(
+                noticia["url"]
+            )
+
+            print(
+                "-" * 70
+            )
 
     except Exception as error:
 
