@@ -1,4 +1,6 @@
+import requests
 import feedparser
+
 
 FUENTES = {
     "El País": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
@@ -14,24 +16,32 @@ for medio, url in FUENTES.items():
     print(url)
     print("=" * 60)
 
-    feed = feedparser.parse(url)
+    try:
+        respuesta = requests.get(url, timeout=20)
+        respuesta.raise_for_status()
 
-    if feed.bozo:
-        print("❌ Error al leer el RSS")
-        print(feed.bozo_exception)
-        continue
+        feed = feedparser.parse(respuesta.content)
 
-    cantidad = len(feed.entries)
+        if feed.bozo:
+            print("❌ Error al leer el RSS")
+            print(feed.bozo_exception)
+            continue
 
-    print(f"✅ RSS funcionando")
-    print(f"Noticias encontradas: {cantidad}")
+        cantidad = len(feed.entries)
 
-    if cantidad > 0:
-        print()
-        print("Primeras 3 noticias:")
+        print("✅ RSS funcionando")
+        print(f"Noticias encontradas: {cantidad}")
 
-        for noticia in feed.entries[:3]:
-            print("-", noticia.title)
-            print(" ", noticia.link)
+        if cantidad > 0:
+            print()
+            print("Primeras 3 noticias:")
+
+            for noticia in feed.entries[:3]:
+                print("-", noticia.title)
+                print(" ", noticia.link)
+
+    except Exception as error:
+        print("❌ Error al acceder al RSS")
+        print(error)
 
     print()
