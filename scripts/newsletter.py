@@ -1,5 +1,6 @@
 import os
 import json
+import html as html_lib
 import requests
 import feedparser
 from datetime import datetime, timedelta, timezone
@@ -155,7 +156,6 @@ Los números deben ser SIEMPRE los de la lista numerada de arriba. No repitas el
             lista_acontecimientos = valor
             break
 
-    # Traducimos índices a noticias reales (medio, titulo, url exactos, sin riesgo de error)
     resultado = []
     for a in lista_acontecimientos:
         try:
@@ -196,43 +196,46 @@ def acortar(url):
         respuesta = requests.get(
             "https://is.gd/create.php",
             params={"format": "simple", "url": url},
+            headers={"User-Agent": "Mozilla/5.0"},
             timeout=15,
         )
         if respuesta.status_code == 200 and respuesta.text.startswith("http"):
             return respuesta.text.strip()
-    except Exception:
-        pass
-    print(f"⚠️  No se pudo acortar, uso URL completa: {url}")
+        print(f"⚠️  is.gd no devolvió un link válido para {url} -> respuesta: {respuesta.text!r}")
+    except Exception as error:
+        print(f"⚠️  Error acortando {url} -> {error}")
     return url
 
 # ============================================================
-# 4. FORMATEAR PARA WHATSAPP/TELEGRAM (por bloques)
+# 4. FORMATEAR PARA TELEGRAM (HTML, por bloques)
 # ============================================================
 def armar_bloques(acontecimientos):
     fecha_titulo = AHORA_ART.strftime("%d/%m")
-    bloques = [f"*NOTICIAS ESPAÑA {fecha_titulo}*"]
+    bloques = [f"<b>NOTICIAS ESPAÑA {fecha_titulo}</b>"]
 
     con_grupo = [a for a in acontecimientos if a["mismo_hecho_cubierto_por"]]
     sin_grupo = [a for a in acontecimientos if not a["mismo_hecho_cubierto_por"]]
 
     numero = 1
     for a in con_grupo:
-        lineas = [f"*{numero}) {a['tema'].upper()}*"]
-        lineas.append(f"Medio: {a['medio_principal']}")
-        lineas.append(f"Titular del medio: \"{a['titular_principal']}\"")
-        lineas.append(f"Fuente: {acortar(a['url_principal'])}")
+        lineas = [f"<b>{numero}) {html_lib.escape(a['tema'].upper())}</b>"]
+        lineas.append(f"Medio: {html_lib.escape(a['medio_principal'])}")
+        lineas.append(f"Titular del medio: \"{html_lib.escape(a['titular_principal'])}\"")
+        lineas.append(f"Fuente: {html_lib.escape(acortar(a['url_principal']))}")
         lineas.append("Mismo hecho cubierto por:")
         for cobertura in a["mismo_hecho_cubierto_por"]:
-            lineas.append(f"- {cobertura['medio']} — {acortar(cobertura['url'])}")
+            medio = html_lib.escape(cobertura['medio'])
+            link = html_lib.escape(acortar(cobertura['url']))
+            lineas.append(f"- {medio} — {link}")
         bloques.append("\n".join(lineas))
         numero += 1
 
     if sin_grupo:
-        lineas = [f"*{numero}) OTROS TEMAS*"]
+        lineas = [f"<b>{numero}) OTROS TEMAS</b>"]
         for a in sin_grupo:
-            lineas.append(f"Medio: {a['medio_principal']}")
-            lineas.append(f"Titular del medio: \"{a['titular_principal']}\"")
-            lineas.append(f"Fuente: {acortar(a['url_principal'])}")
+            lineas.append(f"Medio: {html_lib.escape(a['medio_principal'])}")
+            lineas.append(f"Titular del medio: \"{html_lib.escape(a['titular_principal'])}\"")
+            lineas.append(f"Fuente: {html_lib.escape(acortar(a['url_principal']))}")
             lineas.append("")
         bloques.append("\n".join(lineas).strip())
 
@@ -263,7 +266,7 @@ def enviar_telegram(mensajes):
     for mensaje in mensajes:
         respuesta = requests.post(
             url,
-            data={"chat_id": chat_id, "text": mensaje, "parse_mode": "Markdown"},
+            data={"chat_id": chat_id, "text": mensaje, "parse_mode": "HTML"},
             timeout=20,
         )
         if respuesta.status_code != 200:
