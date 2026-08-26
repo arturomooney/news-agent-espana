@@ -119,12 +119,16 @@ def preguntar_a_gemini(noticias):
 
 Te paso una lista numerada de noticias (medio, título, URL) publicadas en las últimas 24 horas.
 
+Orden de prioridad de medios (usalo para decidir el "medio_principal" de cada acontecimiento): 1) El País, 2) El Mundo, 3) ABC, 4) La Vanguardia, 5) elDiario.es.
+
 Tarea:
 1. Descartá todo lo que NO sea política o economía de impacto real a nivel nacional o de comunidad autónoma (nada de deportes, sucesos, clima, cultura, tráfico, salud, sociedad general).
-2. Agrupá las noticias que hablan del MISMO acontecimiento (aunque el título sea distinto en cada medio).
-3. Para cada acontecimiento, elegí UNA sola noticia "principal" (medio + título + URL) y listá los demás medios que cubrieron ese mismo hecho, cada uno con su propia URL.
-4. Ordená los acontecimientos por relevancia/impacto, de mayor a menor.
-5. Quedate como máximo con 12 acontecimientos.
+2. Agrupá las noticias que hablan del MISMO acontecimiento puntual (no un tema genérico ni una crisis en curso con muchas aristas: solo agrupá artículos que cubren el mismo hecho concreto, por ejemplo la misma declaración, el mismo anuncio, la misma votación).
+3. Para cada acontecimiento, elegí como "medio_principal" el de mayor prioridad según el orden de arriba entre los que lo cubrieron, con su titular y URL exactos.
+4. En "mismo_hecho_cubierto_por" incluí COMO MÁXIMO UN artículo por cada medio adicional (el más representativo de ese medio sobre ese mismo hecho puntual) — nunca dos URLs del mismo medio en la misma lista.
+5. Si un medio publicó varias notas relacionadas con un tema amplio (por ejemplo una crisis en curso) pero cada nota cubre un ángulo o hecho distinto, tratalas como acontecimientos separados, no las agrupes todas juntas.
+6. Ordená los acontecimientos por relevancia/impacto, de mayor a menor.
+7. Quedate como máximo con 12 acontecimientos.
 
 Noticias:
 {lista_texto}
@@ -144,7 +148,7 @@ Devolvé EXCLUSIVAMENTE un JSON válido (sin texto adicional, sin markdown) con 
   ]
 }}
 
-Importante: los títulos y URLs deben ser EXACTAMENTE los de la lista que te pasé, no inventes ni modifiques nada."""
+Importante: los títulos y URLs deben ser EXACTAMENTE los de la lista que te pasé, no inventes ni modifiques nada. Nunca repitas el mismo medio dos veces en el mismo acontecimiento (ni como principal ni en la lista de cobertura adicional)."""
 
     respuesta = client.models.generate_content(
         model="gemini-3.6-flash",
