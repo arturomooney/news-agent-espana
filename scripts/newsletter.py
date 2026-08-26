@@ -190,23 +190,24 @@ Los números deben ser SIEMPRE los de la lista numerada de arriba. No repitas el
     return resultado
 
 # ============================================================
-# 3. ACORTAR URLS CON is.gd
+# 3. ACORTAR URLS CON TinyURL
 # ============================================================
 def acortar(url, intentos=3):
     for intento in range(1, intentos + 1):
         try:
             respuesta = requests.get(
-                "https://is.gd/create.php",
-                params={"format": "simple", "url": url},
+                "https://tinyurl.com/api-create.php",
+                params={"url": url},
                 headers={"User-Agent": "Mozilla/5.0"},
                 timeout=15,
             )
-            if respuesta.status_code == 200 and respuesta.text.startswith("http"):
-                time.sleep(1.2)
-                return respuesta.text.strip()
-            print(f"⚠️  is.gd intento {intento}/{intentos} falló para {url} -> respuesta: {respuesta.text!r}")
+            texto = respuesta.text.strip()
+            if respuesta.status_code == 200 and texto.startswith("http"):
+                time.sleep(0.5)
+                return texto
+            print(f"⚠️  TinyURL intento {intento}/{intentos} falló para {url} -> respuesta: {texto!r}")
         except Exception as error:
-            print(f"⚠️  is.gd intento {intento}/{intentos} error para {url} -> {error}")
+            print(f"⚠️  TinyURL intento {intento}/{intentos} error para {url} -> {error}")
         time.sleep(2)
 
     print(f"⚠️  No se pudo acortar tras {intentos} intentos, uso URL completa: {url}")
