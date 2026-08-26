@@ -1,14 +1,25 @@
 import feedparser
 
-RSS_URL = "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada"
+# RSS oficiales de los cinco medios
+FEEDS = {
+    "El País": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/espana/portada",
+    "El Mundo": "https://e00-elmundo.uecdn.es/elmundo/rss/espana.xml",
+    "ABC": "https://www.abc.es/rss/feeds/abc_EspanaEspana.xml",
+    "La Vanguardia": "https://www.lavanguardia.com/rss/politica.xml",
+    "elDiario.es": "https://www.eldiario.es/rss/politica/"
+}
 
-feed = feedparser.parse(RSS_URL)
+print("===== PRUEBA DE RSS =====\n")
 
-print(f"Noticias encontradas: {len(feed.entries)}")
-print()
+for medio, rss in FEEDS.items():
+    print(f"--- {medio} ---")
 
-for noticia in feed.entries[:50]:
-    print("TÍTULO:", noticia.title)
-    print("FECHA:", noticia.get("published", "Sin fecha"))
-    print("URL:", noticia.link)
-    print("-" * 60)
+    feed = feedparser.parse(rss)
+
+    print(f"Noticias encontradas: {len(feed.entries)}")
+
+    # Mostrar solo las primeras 5 noticias de cada medio
+    for noticia in feed.entries[:5]:
+        print("•", noticia.title)
+
+    print()
