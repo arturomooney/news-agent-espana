@@ -96,50 +96,46 @@ def recolectar():
     return noticias
 
 # ============================================================
-# 2. GEMINI
+# 2. GEMINI — devuelve ÍNDICES, no URLs (así nunca se rompen)
 # ============================================================
 def preguntar_a_gemini(noticias):
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
     lista_texto = "\n".join(
-        f"{i}) MEDIO: {n['medio']} | TITULO: {n['titulo']} | URL: {n['url']}"
+        f"{i}) MEDIO: {n['medio']} | TITULO: {n['titulo']}"
         for i, n in enumerate(noticias)
     )
 
     prompt = f"""Sos un editor político especializado en España, escribiendo para consultores y políticos.
 
-Te paso una lista numerada de noticias (medio, título, URL) publicadas en las últimas 24 horas.
+Te paso una lista numerada de noticias (medio, título) publicadas en las últimas 24 horas. Vas a trabajar SOLO con los números de esa lista, nunca con URLs ni con texto reescrito.
 
-Orden de prioridad de medios (usalo para decidir el "medio_principal" de cada acontecimiento): 1) El País, 2) El Mundo, 3) ABC, 4) La Vanguardia, 5) elDiario.es.
+Orden de prioridad de medios (usalo para decidir cuál es el "indice_principal" de cada acontecimiento): 1) El País, 2) El Mundo, 3) ABC, 4) La Vanguardia, 5) elDiario.es.
 
 Tarea:
 1. Descartá todo lo que NO sea política o economía de impacto real a nivel nacional o de comunidad autónoma (nada de deportes, sucesos, clima, cultura, tráfico, salud, sociedad general).
-2. Agrupá las noticias que hablan del MISMO acontecimiento puntual (no un tema genérico ni una crisis en curso con muchas aristas: solo agrupá artículos que cubren el mismo hecho concreto, por ejemplo la misma declaración, el mismo anuncio, la misma votación).
-3. Para cada acontecimiento, elegí como "medio_principal" el de mayor prioridad según el orden de arriba entre los que lo cubrieron, con su titular y URL exactos.
-4. En "mismo_hecho_cubierto_por" incluí COMO MÁXIMO UN artículo por cada medio adicional (el más representativo de ese medio sobre ese mismo hecho puntual) — nunca dos URLs del mismo medio en la misma lista.
-5. Si un medio publicó varias notas relacionadas con un tema amplio (por ejemplo una crisis en curso) pero cada nota cubre un ángulo o hecho distinto, tratalas como acontecimientos separados, no las agrupes todas juntas.
+2. Agrupá las noticias que hablan del MISMO acontecimiento puntual (no un tema genérico ni una crisis en curso con muchas aristas: solo agrupá artículos que cubren el mismo hecho concreto).
+3. Para cada acontecimiento, elegí como "indice_principal" el número, según la lista, del medio de mayor prioridad entre los que lo cubrieron.
+4. En "indices_cobertura_adicional" incluí como máximo UN índice por cada medio adicional (nunca dos índices del mismo medio en el mismo acontecimiento, y nunca el mismo índice que ya usaste como principal).
+5. Si un medio publicó varias notas relacionadas con un tema amplio pero cada nota cubre un ángulo distinto, tratalas como acontecimientos separados.
 6. Ordená los acontecimientos por relevancia/impacto, de mayor a menor.
 7. Quedate como máximo con 12 acontecimientos.
 
 Noticias:
 {lista_texto}
 
-Devolvé EXCLUSIVAMENTE un JSON válido (sin texto adicional, sin markdown), con la clave exacta "acontecimientos" (revisá bien la ortografía de esa clave), en este formato exacto:
+Devolvé EXCLUSIVAMENTE un JSON válido (sin texto adicional, sin markdown), con la clave exacta "acontecimientos", en este formato exacto:
 {{
   "acontecimientos": [
     {{
       "tema": "NOMBRE BREVE DEL TEMA EN MAYUSCULAS",
-      "medio_principal": "Nombre del medio",
-      "titular_principal": "Titular exacto tal cual fue publicado",
-      "url_principal": "URL exacta de la lista",
-      "mismo_hecho_cubierto_por": [
-        {{"medio": "Nombre del medio", "url": "URL exacta de la lista"}}
-      ]
+      "indice_principal": 0,
+      "indices_cobertura_adicional": [0, 0]
     }}
   ]
 }}
 
-Importante: los títulos y URLs deben ser EXACTAMENTE los de la lista que te pasé, no inventes ni modifiques nada. Nunca repitas el mismo medio dos veces en el mismo acontecimiento (ni como principal ni en la lista de cobertura adicional)."""
+Los números deben ser SIEMPRE los de la lista numerada de arriba. No repitas el mismo índice dos veces en un mismo acontecimiento."""
 
     respuesta = client.models.generate_content(
         model="gemini-3.6-flash",
@@ -153,11 +149,44 @@ Importante: los títulos y URLs deben ser EXACTAMENTE los de la lista que te pas
 
     datos = json.loads(texto)
 
-    # Tolerante a errores de tipeo de Gemini en el nombre de la clave
-    for clave, valor in datos.items():
+    lista_acontecimientos = []
+    for valor in datos.values():
         if isinstance(valor, list):
-            return valor
-    return []
+            lista_acontecimientos = valor
+            break
+
+    # Traducimos índices a noticias reales (medio, titulo, url exactos, sin riesgo de error)
+    resultado = []
+    for a in lista_acontecimientos:
+        try:
+            idx_principal = a["indice_principal"]
+            principal = noticias[idx_principal]
+        except (KeyError, IndexError, TypeError):
+            continue
+
+        cobertura = []
+        medios_usados = {principal["medio"]}
+        for idx in a.get("indices_cobertura_adicional", []):
+            try:
+                noticia = noticias[idx]
+            except (IndexError, TypeError):
+                continue
+            if noticia["medio"] in medios_usados:
+                continue
+            medios_usados.add(noticia["medio"])
+            cobertura.append(noticia)
+
+        resultado.append({
+            "tema": a.get("tema", "").strip(),
+            "medio_principal": principal["medio"],
+            "titular_principal": principal["titulo"],
+            "url_principal": principal["url"],
+            "mismo_hecho_cubierto_por": [
+                {"medio": n["medio"], "url": n["url"]} for n in cobertura
+            ],
+        })
+
+    return resultado
 
 # ============================================================
 # 3. ACORTAR URLS CON is.gd
@@ -177,52 +206,64 @@ def acortar(url):
     return url
 
 # ============================================================
-# 4. FORMATEAR PARA WHATSAPP/TELEGRAM
+# 4. FORMATEAR PARA WHATSAPP/TELEGRAM (por bloques)
 # ============================================================
-def formatear(acontecimientos):
+def armar_bloques(acontecimientos):
     fecha_titulo = AHORA_ART.strftime("%d/%m")
-    lineas = [f"*NOTICIAS ESPAÑA {fecha_titulo}*", ""]
+    bloques = [f"*NOTICIAS ESPAÑA {fecha_titulo}*"]
 
-    con_grupo = [a for a in acontecimientos if a.get("mismo_hecho_cubierto_por")]
-    sin_grupo = [a for a in acontecimientos if not a.get("mismo_hecho_cubierto_por")]
+    con_grupo = [a for a in acontecimientos if a["mismo_hecho_cubierto_por"]]
+    sin_grupo = [a for a in acontecimientos if not a["mismo_hecho_cubierto_por"]]
 
     numero = 1
     for a in con_grupo:
-        lineas.append(f"*{numero}) {a['tema'].upper()}*")
+        lineas = [f"*{numero}) {a['tema'].upper()}*"]
         lineas.append(f"Medio: {a['medio_principal']}")
         lineas.append(f"Titular del medio: \"{a['titular_principal']}\"")
         lineas.append(f"Fuente: {acortar(a['url_principal'])}")
         lineas.append("Mismo hecho cubierto por:")
         for cobertura in a["mismo_hecho_cubierto_por"]:
             lineas.append(f"- {cobertura['medio']} — {acortar(cobertura['url'])}")
-        lineas.append("")
+        bloques.append("\n".join(lineas))
         numero += 1
 
     if sin_grupo:
-        lineas.append(f"*{numero}) OTROS TEMAS*")
+        lineas = [f"*{numero}) OTROS TEMAS*"]
         for a in sin_grupo:
             lineas.append(f"Medio: {a['medio_principal']}")
             lineas.append(f"Titular del medio: \"{a['titular_principal']}\"")
             lineas.append(f"Fuente: {acortar(a['url_principal'])}")
             lineas.append("")
+        bloques.append("\n".join(lineas).strip())
 
-    return "\n".join(lineas).strip()
+    return bloques
+
+def agrupar_en_mensajes(bloques, limite=3800):
+    mensajes = []
+    actual = ""
+    for bloque in bloques:
+        candidato = (actual + "\n\n" + bloque).strip() if actual else bloque
+        if len(candidato) > limite and actual:
+            mensajes.append(actual)
+            actual = bloque
+        else:
+            actual = candidato
+    if actual:
+        mensajes.append(actual)
+    return mensajes
 
 # ============================================================
 # 5. ENVIAR A TELEGRAM
 # ============================================================
-def enviar_telegram(texto):
+def enviar_telegram(mensajes):
     token = os.environ["TELEGRAM_TOKEN"]
     chat_id = os.environ["TELEGRAM_CHAT_ID"]
-
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    # Telegram limita a 4096 caracteres por mensaje: partimos si hace falta
-    trozos = [texto[i:i + 4000] for i in range(0, len(texto), 4000)]
 
-    for trozo in trozos:
+    for mensaje in mensajes:
         respuesta = requests.post(
             url,
-            data={"chat_id": chat_id, "text": trozo, "parse_mode": "Markdown"},
+            data={"chat_id": chat_id, "text": mensaje, "parse_mode": "Markdown"},
             timeout=20,
         )
         if respuesta.status_code != 200:
@@ -243,10 +284,14 @@ if __name__ == "__main__":
         acontecimientos = preguntar_a_gemini(noticias)
         print(f"Acontecimientos seleccionados por Gemini: {len(acontecimientos)}")
 
-        texto_final = formatear(acontecimientos)
-        print("=" * 70)
-        print(texto_final)
+        bloques = armar_bloques(acontecimientos)
+        mensajes = agrupar_en_mensajes(bloques)
+        print(f"Se va a enviar en {len(mensajes)} mensaje(s) de Telegram.")
+
+        for m in mensajes:
+            print("=" * 70)
+            print(m)
         print("=" * 70)
 
-        enviar_telegram(texto_final)
+        enviar_telegram(mensajes)
         print("Enviado a Telegram.")
