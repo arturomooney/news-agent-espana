@@ -3,20 +3,43 @@ import feedparser
 
 
 FUENTES = {
-    "El País": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
-    "El Mundo": "https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml",
-    "elDiario.es": "https://www.eldiario.es/rss",
-    "La Vanguardia": "https://www.lavanguardia.com/rss/politica.xml",
-    "ABC": "https://www.abc.es/rss/2.0/portada",
+    "El País": [
+        "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/espana/portada",
+        "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada"
+    ],
+
+    "El Mundo": [
+        "https://e00-elmundo.uecdn.es/elmundo/rss/espana.xml",
+        "https://e00-elmundo.uecdn.es/elmundo/rss/economia.xml"
+    ],
+
+    "ABC": [
+        "https://www.abc.es/rss/feeds/abc_EspanaEspana.xml",
+        "https://www.abc.es/rss/feeds/abc_Economia.xml"
+    ],
+
+    "La Vanguardia": [
+        "https://www.lavanguardia.com/rss/politica.xml",
+        "https://www.lavanguardia.com/rss/economia.xml"
+    ],
+
+    "elDiario.es": [
+        "https://www.eldiario.es/rss/politica/",
+        "https://www.eldiario.es/rss/economia/"
+    ]
 }
 
 
-for medio, url in FUENTES.items():
+for medio, urls in FUENTES.items():
 
     print("=" * 60)
     print(medio)
-    print(url)
     print("=" * 60)
+
+    total = 0
+
+    for url in urls:
+        print(f"RSS: {url}")
 
     try:
         respuesta = requests.get(
