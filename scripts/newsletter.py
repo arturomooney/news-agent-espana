@@ -7,6 +7,7 @@ import feedparser
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from google import genai
+from google.genai import errors as genai_errors
 
 # ============================================================
 # CONFIG
@@ -100,7 +101,7 @@ def recolectar():
 # ============================================================
 # 2. GEMINI — devuelve ÍNDICES, no URLs (así nunca se rompen)
 # ============================================================
-def preguntar_a_gemini(noticias):
+def preguntar_a_gemini(noticias, intentos=4):
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
     lista_texto = "\n".join(
@@ -139,10 +140,25 @@ Devolvé EXCLUSIVAMENTE un JSON válido (sin texto adicional, sin markdown), con
 
 Los números deben ser SIEMPRE los de la lista numerada de arriba. No repitas el mismo índice dos veces en un mismo acontecimiento."""
 
-    respuesta = client.models.generate_content(
-        model="gemini-3.6-flash",
-        contents=prompt,
-    )
+    respuesta = None
+    for intento in range(1, intentos + 1):
+        try:
+            respuesta = client.models.generate_content(
+                model="gemini-3.6-flash",
+                contents=prompt,
+            )
+            break
+        except genai_errors.ServerError as error:
+            espera = 20 * intento
+            print(f"⚠️  Gemini sobrecargado (intento {intento}/{intentos}): {error}. Esperando {espera}s...")
+            time.sleep(espera)
+        except Exception as error:
+            espera = 20 * intento
+            print(f"⚠️  Error llamando a Gemini (intento {intento}/{intentos}): {error}. Esperando {espera}s...")
+            time.sleep(espera)
+
+    if respuesta is None:
+        raise RuntimeError("Gemini no respondió tras varios intentos. Se aborta esta corrida.")
 
     texto = respuesta.text.strip()
     if texto.startswith("```"):
